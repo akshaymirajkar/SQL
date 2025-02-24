@@ -95,3 +95,13 @@ ON s.product_id = mm.product_id
 WHERE s.order_date < m.join_date
 ORDER BY s.customer_id;
 
+------- Q8. What is the total items and amount spent for each member before they became a member?
+SELECT s.customer_id, COUNT(s.product_id) AS total_items, SUM(price) AS total_amount_spent
+FROM sales s
+INNER JOIN members m
+ON s.customer_id = m.customer_id
+INNER JOIN menu mm
+ON s.product_id = mm.product_id
+WHERE order_date < join_date
+GROUP BY s.customer_id
+
