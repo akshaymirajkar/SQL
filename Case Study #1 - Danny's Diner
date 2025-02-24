@@ -1,38 +1,97 @@
--- Q1.) What is the total amount each customer spent at the restaurant?
-SELECT s.customer_id, SUM(m.price) AS total_amount_spent
+------- Q1. What is the total amount each customer spent at the restaurant?
+
+SELECT customer_id, SUM(price) AS total_amount_spent
 FROM sales s
-INNER JOIN menu m
+INNER JOIN menu m 
 ON s.product_id = m.product_id
-GROUP BY s.customer_id
+GROUP BY customer_id
 
-Answer: Customer A spent $76, Customer B spent $74 and Customer C spent $36
+------- Q2. How many days has each customer visited the restaurant?
 
--- Q2.) How many days has each customer visited the restaurant?
-SELECT  customer_id, COUNT (DISTINCT order_date) As no_of_visits
+SELECT customer_id, COUNT(DISTINCT order_date) AS total_number_of_days_visited
 FROM sales
 GROUP BY customer_id
 
-Answer: Customer A visted 4 times, Customer B visited 6 times and Customer C visited 2 times
+------- Q3. What was the first item from the menu purchased by each customer?
 
--- Q3.) What was the first item from the menu purchased by each customer?
-SELECT customer_id, product_name 
-FROM
-(SELECT customer_id, order_date, s.product_id, product_name, price,
-DENSE_RANK() OVER (PARTITION BY customer_id ORDER BY order_date ASC) AS item_first_ordered
+-- Solution 1
+SELECT DISTINCT customer_id, product_name
+FROM (SELECT customer_id, order_date, s.product_id, product_name, price,
+DENSE_RANK() OVER (PARTITION BY customer_id ORDER BY order_date) AS RANK
 FROM sales s
-INNER JOIN menu m
-ON s.product_id = m.product_id) temp
-WHERE item_first_ordered = 1
-GROUP BY customer_id, product_name
+INNER JOIN menu m 
+ON s.product_id = m.product_id) a 
+WHERE RANK = 1
 
-Answer: Customer A's first order are curry and sushi, Customer B's first order is curry, Customer C's first order is ramen
+-- Solution 2
 
--- Q4.) What is the most purchased item on the menu and how many times was it purchased by all customers?
-SELECT TOP 1 COUNT(product_name) AS most_purchased_item, product_name
-FROM sales s
+SELECT DISTINCT customer_id, product_name
+FROM sales s 
 INNER JOIN menu m
 ON s.product_id = m.product_id
-GROUP BY product_name
-ORDER BY COUNT(product_name) DESC
+WHERE order_date IN (SELECT MIN(order_date) AS date
+FROM sales s
+GROUP BY customer_id) 
 
-Answer: The most purchased item on the menu is ramen which is 8 times
+------- Q4. What is the most purchased item on the menu and how many times was it purchased by all customers?
+
+WITH CTE AS (SELECT TOP 1 product_id, COUNT(product_id) AS most_purchased_item
+FROM sales
+GROUP BY product_id
+ORDER BY most_purchased_item DESC),
+	
+	CTE_2 AS (SELECT product_id
+	FROM CTE)
+
+				SELECT customer_id, product_name, COUNT(s.product_id) AS most_purchased_item
+				FROM sales s
+				INNER JOIN CTE_2
+				ON s.product_id = CTE_2.product_id
+				INNER JOIN menu m
+				ON s.product_id = m.product_id
+				GROUP BY customer_id, product_name
+
+------- Q5. Which item was the most popular for each customer?
+
+WITH CTE AS (SELECT customer_id, product_id, COUNT(product_id) AS total
+FROM sales
+GROUP BY customer_id, product_id),
+
+	CTE_2 AS (SELECT customer_id, MAX(total) AS tots
+			  FROM CTE
+			  GROUP BY customer_id),
+
+		CTE_3 AS	(SELECT s.customer_id, product_id, COUNT(product_id) AS total
+				     FROM sales s
+				     INNER JOIN CTE_2 ct
+				     ON s.customer_id = ct.customer_id
+				     GROUP BY s.customer_id, product_id, tots
+				     HAVING COUNT(product_id) = ct.tots)
+
+				     SELECT customer_id, ct.product_id, product_name
+				     FROM CTE_3 ct
+				     INNER JOIN menu m
+				     ON ct.product_id = m.product_id
+				     ORDER BY customer_id
+
+------- Q6. Which item was purchased first by the customer after they became a member?
+
+SELECT s.customer_id, product_name
+FROM sales s
+INNER JOIN members m 
+ON s.customer_id = m.customer_id
+INNER JOIN menu mm 
+ON s.product_id = mm.product_id
+WHERE m.join_date = s.order_date;
+
+------- Q7. Which item was purchased just before the customer became a member?
+
+SELECT DISTINCT product_name, s.customer_id
+FROM sales s
+INNER JOIN members m 
+ON s.customer_id = m.customer_id
+INNER JOIN menu mm 
+ON s.product_id = mm.product_id
+WHERE s.order_date < m.join_date
+ORDER BY s.customer_id;
+
