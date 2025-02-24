@@ -105,3 +105,21 @@ ON s.product_id = mm.product_id
 WHERE order_date < join_date
 GROUP BY s.customer_id
 
+------- BONUS QUESTIONS --------
+-- Q1.) Recreate the following
+
+SELECT customer_id, order_date, product_name, price,
+CASE 
+	WHEN order_date < join_date  OR join_date IS NULL THEN 'N'
+	ELSE 'Y'
+	END AS member
+FROM (SELECT s.customer_id, order_date, product_name, price, join_date
+FROM sales s
+INNER JOIN menu m
+ON s.product_id = m.product_id
+LEFT JOIN members mm
+ON s.customer_id = mm.customer_id) a 
+
+
+
+
