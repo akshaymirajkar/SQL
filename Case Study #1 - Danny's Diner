@@ -96,6 +96,7 @@ WHERE s.order_date < m.join_date
 ORDER BY s.customer_id;
 
 ------- Q8. What is the total items and amount spent for each member before they became a member?
+
 SELECT s.customer_id, COUNT(s.product_id) AS total_items, SUM(price) AS total_amount_spent
 FROM sales s
 INNER JOIN members m
@@ -105,8 +106,8 @@ ON s.product_id = mm.product_id
 WHERE order_date < join_date
 GROUP BY s.customer_id
 
+------- Q9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
 
-------- Q9.If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
 WITH CTE AS (SELECT *,
 CASE 
 	WHEN product_name = 'sushi' THEN price*20
@@ -121,7 +122,24 @@ ON s.product_id = ct.product_id
 GROUP BY customer_id
 ORDER BY total_pts DESC
 
+------- Q10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
+ 
+SELECT customer_id, SUM(pts) AS total_pts
+ FROM (SELECT s.customer_id, order_date, m.product_id, product_name, price,
+ CASE
+	WHEN order_date < join_date THEN price*10
+	WHEN order_date >= join_date THEN price*20
+	END AS pts
+ FROM sales s
+ INNER JOIN menu m
+ ON s.product_id = m.product_id
+ INNER JOIN members mm
+ ON s.customer_id = mm.customer_id) a
+ WHERE MONTH(order_date) = '1'
+ GROUP BY customer_id
+
 ------- BONUS QUESTIONS --------
+
 -- Q1.) Recreate the following
 
 SELECT customer_id, order_date, product_name, price,
