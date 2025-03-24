@@ -105,3 +105,28 @@ FROM (SELECT *,
 RANK() OVER (ORDER BY MoM DESC) AS RANK
 FROM CTE_3) a
 WHERE RANK = 1 ;
+
+---- Q8.) During weekends which city has highest total spend to total no of transcations ratio 
+WITH CTE_1 AS (SELECT city, SUM(amount) AS weekend_spend
+FROM (SELECT *, DATENAME(WEEKDAY, transaction_date) AS Day_Names
+FROM credit_card_transactions
+WHERE DATENAME(WEEKDAY, transaction_date) IN ('Saturday', 'Sunday')) a
+GROUP BY city),
+
+	CTE_2 AS (SELECT city, COUNT(amount) AS total_spend
+	FROM credit_card_transactions
+	WHERE DATENAME(WEEKDAY, transaction_date) IN ('Saturday', 'Sunday')
+	GROUP BY city),
+
+		CTE_3 AS (SELECT ct.city, (weekend_spend*1.0/total_spend) AS transaction_ratio
+		FROM CTE_1 ct
+		INNER JOIN CTE_2 ctt
+		ON ct.city = ctt.city),
+
+			CTE_4 AS (SELECT city, transaction_ratio, 
+			DENSE_RANK() OVER (ORDER BY transaction_ratio DESC) AS RANK
+			FROM CTE_3)
+
+SELECT city
+FROM CTE_4
+WHERE RANK = 1;
