@@ -82,3 +82,26 @@ FROM (SELECT *,
 SUM(amount) OVER (PARTITION BY exp_type, gender)*100.0/SUM(amount) OVER (PARTITION BY exp_type) AS pct_contribution
 FROM credit_card_transactions) a
 WHERE gender = 'F';
+
+---- Q7.) Which card and expense type combination saw highest month over month growth in Jan-2014
+WITH CTE_1 AS(SELECT DISTINCT card_type, exp_type, CONCAT(YEAR(transaction_date), '-' ,MONTH(transaction_date)) AS previous_year,
+SUM(amount) OVER (PARTITION BY card_type, exp_type, DATEPART(YEAR, transaction_date), DATEPART(MONTH, transaction_date)) AS previous_spend
+FROM credit_card_transactions
+WHERE CONCAT(YEAR(transaction_date), '-' ,MONTH(transaction_date)) = '2013-12'),
+
+	CTE_2 AS (SELECT DISTINCT card_type, exp_type, CONCAT(YEAR(transaction_date), '-' ,MONTH(transaction_date)) AS current_year,
+	SUM(amount) OVER (PARTITION BY card_type, exp_type, DATEPART(YEAR, transaction_date), DATEPART(MONTH, transaction_date)) AS current_spend
+	FROM credit_card_transactions
+	WHERE CONCAT(YEAR(transaction_date), '-' ,MONTH(transaction_date)) = '2014-1'),
+
+		CTE_3 AS (SELECT ct.card_type, ct.exp_type, ct.previous_year, ctt.current_year, ct.previous_spend, ctt.current_spend ,(ctt.current_spend - ct.previous_spend) AS difference, (ctt.current_spend - ct.previous_spend)*100.0/ct.previous_spend AS MoM
+		FROM CTE_1 ct
+		INNER JOIN CTE_2 ctt
+		ON ct.card_type = ctt.card_type
+		AND ct.exp_type = ctt.exp_type)
+
+SELECT card_type, exp_type, previous_spend, current_spend, difference, MoM
+FROM (SELECT *,
+RANK() OVER (ORDER BY MoM DESC) AS RANK
+FROM CTE_3) a
+WHERE RANK = 1 ;
