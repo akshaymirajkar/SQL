@@ -1,0 +1,84 @@
+Analyzing Credit Card Spending Habits In India
+
+---- Q1.) Write a query to print top 5 cities with highest spends and their percentage contribution of total credit card spends 
+SELECT TOP 5 city, total_spend, concat(pct,'%')
+FROM (SELECT  DISTINCT(city), 
+SUM(amount) OVER (PARTITION BY city) AS total_spend,
+
+(SUM(amount) OVER (PARTITION BY city)*100./SUM(amount) OVER ()) AS pct
+FROM credit_card_transactions) a
+ORDER BY total_spend DESC
+
+---- Q2.) Write a query to print highest spend month and amount spent in that month for each card type
+WITH CTE_1 AS (SELECT card_type, DATENAME(MONTH,transaction_date) AS month, DATENAME(YEAR, transaction_date) AS year, SUM(amount) AS total_spend
+FROM credit_card_transactions
+GROUP BY card_type, DATENAME(MONTH,transaction_date), DATENAME(YEAR, transaction_date)),
+
+	CTE_2 AS (SELECT *,
+	RANK() OVER (PARTITION BY card_type ORDER BY total_spend DESC) AS RANK
+	FROM CTE_1)
+	
+	SELECT card_type, month, year, total_spend 
+	FROM CTE_2
+	WHERE RANK = 1;
+
+---- Q3.) Write a query to print the transaction details(all columns from the table) for each card type when
+it reaches a cumulative of 1000000 total spends(We should have 4 rows in the o/p one for each car
+WITH CTE_1 AS (SELECT *,
+SUM(amount) OVER (PARTITION BY card_type ORDER BY transaction_date, transaction_id) AS cumulative_total
+FROM credit_card_transactions),
+
+	CTE_2 AS (SELECT *,
+DENSE_RANK() OVER (PARTITION BY card_type ORDER BY cumulative_total) AS tots
+FROM CTE_1
+WHERE cumulative_total >=1000000)
+
+SELECT transaction_id, city, transaction_date, card_type, exp_type, gender, amount, cumulative_total
+FROM CTE_2
+WHERE tots = 1
+
+
+---- Q4.) Write a query to find city which had lowest percentage spend for gold card type
+WITH CTE_1 AS (SELECT city, SUM(amount) AS total_spend
+FROM credit_card_transactions
+GROUP BY city),
+
+
+	CTE_2 AS (SELECT city, SUM(amount) AS gold_card_spend
+FROM credit_card_transactions
+WHERE card_type = 'Gold'
+GROUP BY city)
+
+SELECT TOP 1 ct.city, total_spend, gold_card_spend, gold_card_spend*100.0/total_spend AS gold_spend
+FROM CTE_1 ct
+INNER JOIN CTE_2 ctt
+ON ct.city = ctt.city
+ORDER BY gold_spend;
+
+---- Q5.) Write a query to print 3 columns:  city, highest_expense_type , lowest_expense_type (example format : Delhi , bills, Fuel)
+WITH CTE_1 AS (SELECT *,
+DENSE_RANK() OVER (PARTITION BY city ORDER BY max_spend DESC) AS RANK
+FROM (SELECT *, 
+SUM(amount) OVER (PARTITION BY city, exp_type) AS max_spend
+FROM credit_card_transactions)  a),
+
+
+	CTE_2 AS (SELECT *,
+DENSE_RANK() OVER (PARTITION BY city ORDER BY min_spend) AS RANK
+FROM (SELECT *, 
+SUM(amount) OVER (PARTITION BY city, exp_type) AS min_spend
+FROM credit_card_transactions)  a)
+
+SELECT DISTINCT ct.city, ct.exp_type AS highest_expense_type, ctt.exp_type AS lowest_expense_type
+FROM CTE_1 ct
+INNER JOIN CTE_2 ctt
+ON ct.city = ctt.city
+WHERE ct.rank = 1 AND ctt.rank = 1
+ORDER BY ct.city;
+
+---- Q6.) Write a query to find percentage contribution of spends by females for each expense type
+SELECT DISTINCT exp_type, pct_contribution
+FROM (SELECT *,
+SUM(amount) OVER (PARTITION BY exp_type, gender)*100.0/SUM(amount) OVER (PARTITION BY exp_type) AS pct_contribution
+FROM credit_card_transactions) a
+WHERE gender = 'F';
