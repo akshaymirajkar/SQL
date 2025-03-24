@@ -37,7 +37,6 @@ SELECT transaction_id, city, transaction_date, card_type, exp_type, gender, amou
 FROM CTE_2
 WHERE tots = 1
 
-
 ---- Q4.) Write a query to find city which had lowest percentage spend for gold card type
 WITH CTE_1 AS (SELECT city, SUM(amount) AS total_spend
 FROM credit_card_transactions
