@@ -129,3 +129,25 @@ GROUP BY city),
 SELECT city
 FROM CTE_4
 WHERE RANK = 1;
+
+USE NamasteSQL
+-- Q9.) Which city took least number of days to reach its 500th transaction after the first transaction in that city
+WITH CTE_1 AS (SELECT city, total_no_of_transactions
+FROM (SELECT city, COUNT(rank) AS total_no_of_transactions
+FROM (SELECT *,
+DENSE_RANK() OVER (PARTITION BY city ORDER BY transaction_date, transaction_id) AS rank
+FROM credit_card_transactions) a
+GROUP BY city) b
+WHERE total_no_of_transactions >= 500),
+
+	CTE_2 AS (SELECT cc.city, transaction_date,
+	DENSE_RANK() OVER (PARTITION BY cc.city ORDER BY transaction_date, transaction_id) AS rank
+	FROM credit_card_transactions cc
+	INNER JOIN CTE_1
+	ON cc.city = CTE_1.city)
+
+SELECT TOP 1 city, COUNT(DISTINCT transaction_date) AS least_number_of_days
+FROM CTE_2
+WHERE RANK <=500
+GROUP BY city
+ORDER BY least_number_of_days 
