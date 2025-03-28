@@ -12,3 +12,13 @@ FROM logins
 WHERE MONTH(LOGIN_TIMESTAMP) = '01' AND YEAR(LOGIN_TIMESTAMP) = '2024' AND USER_ID NOT IN (SELECT DISTINCT USER_ID
 FROM logins
 WHERE MONTH(LOGIN_TIMESTAMP) = '11' AND YEAR(LOGIN_TIMESTAMP) = '2023')
+
+-- Q4.) Add to the query from 2 the percentage change in sessions from last quarter.
+WITH CTE_1 AS (SELECT *,
+LAG(number_of_session) OVER (ORDER BY date) AS lagged_session
+FROM (SELECT DATETRUNC(Q, login_timestamp) AS date, COUNT(session_id) AS number_of_session
+FROM logins
+GROUP BY DATETRUNC(Q, login_timestamp)) a)
+
+SELECT *, (number_of_session - lagged_session)*100.0/lagged_session AS pct_change
+FROM CTE_1
