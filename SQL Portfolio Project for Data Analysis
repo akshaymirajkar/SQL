@@ -1,0 +1,14 @@
+
+---- Q2.) For the business units quarterly analysis, calculate how many users and how many sessions were there at each quarter. Return first day of the quarter
+
+SELECT DATETRUNC(Q, login_timestamp) AS date,  COUNT(DISTINCT USER_ID) AS number_of_users, COUNT(session_id) AS number_of_session
+FROM logins
+GROUP BY DATETRUNC(Q, login_timestamp)
+ORDER BY date DESC
+
+-- Q3.) Display user ids that login in January 2024 and did not login in November 2023
+SELECT DISTINCT USER_ID
+FROM logins
+WHERE MONTH(LOGIN_TIMESTAMP) = '01' AND YEAR(LOGIN_TIMESTAMP) = '2024' AND USER_ID NOT IN (SELECT DISTINCT USER_ID
+FROM logins
+WHERE MONTH(LOGIN_TIMESTAMP) = '11' AND YEAR(LOGIN_TIMESTAMP) = '2023')
