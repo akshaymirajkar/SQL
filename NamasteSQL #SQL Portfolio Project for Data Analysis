@@ -1,5 +1,5 @@
 
----- Q2.) For the business units quarterly analysis, calculate how many users and how many sessions were there at each quarter. Return first day of the quarter
+-- Q2.) For the business units quarterly analysis, calculate how many users and how many sessions were there at each quarter. Return first day of the quarter
 
 SELECT DATETRUNC(Q, login_timestamp) AS date,  COUNT(DISTINCT USER_ID) AS number_of_users, COUNT(session_id) AS number_of_session
 FROM logins
