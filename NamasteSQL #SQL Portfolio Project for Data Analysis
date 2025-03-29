@@ -22,3 +22,25 @@ GROUP BY DATETRUNC(Q, login_timestamp)) a)
 
 SELECT *, (number_of_session - lagged_session)*100.0/lagged_session AS pct_change
 FROM CTE_1
+
+-- Q5.) Display the user that had the highest session score for each day
+
+SELECT LOGIN_TIMESTAMP, user_id, total_score
+FROM (SELECT *,
+RANK () OVER (PARTITION BY LOGIN_TIMESTAMP ORDER BY total_score) AS RANK
+FROM (SELECT user_id, LOGIN_TIMESTAMP, SUM(session_score) AS total_score
+FROM logins
+GROUP BY user_id, LOGIN_TIMESTAMP) a ) b
+WHERE RANK = 1
+
+-- Q6.) Identify our best user, that is return that user who had a session every day since their first login
+WITH CTE_1 AS (SELECT *,
+LAG(LOGIN_TIMESTAMP) OVER (PARTITION BY user_id ORDER BY LOGIN_TIMESTAMP) AS first_login
+FROM logins)
+
+SELECT DISTINCT l.USER_ID 
+FROM logins l
+INNER JOIN CTE_1 ct
+ON l.USER_ID = ct.USER_ID
+AND l.SESSION_ID = ct.SESSION_ID
+WHERE DAY(l.LOGIN_TIMESTAMP) > DAY (first_login) AND MONTH(l.LOGIN_TIMESTAMP) = MONTH(first_login) AND YEAR(l.LOGIN_TIMESTAMP) = YEAR(first_login)
