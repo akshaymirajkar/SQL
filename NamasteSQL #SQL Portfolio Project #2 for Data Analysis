@@ -1,0 +1,11 @@
+-- Q1.) Find Top 3 outlets by cuisine type without using limit and top function
+
+WITH CTE_1 AS (SELECT *,
+ROW_NUMBER() OVER (PARTITION BY cuisine ORDER BY total_orders DESC) AS top_outlets
+FROM (SELECT cuisine, restaurant_id, COUNT(order_id) AS total_orders	 
+FROM food_delivery_orders
+GROUP BY cuisine, restaurant_id) a)
+
+SELECT cuisine, restaurant_id
+FROM CTE_1
+WHERE top_outlets <=3
