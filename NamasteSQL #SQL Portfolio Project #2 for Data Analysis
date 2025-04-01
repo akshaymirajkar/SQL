@@ -1,5 +1,4 @@
 -- Q1.) Find Top 3 outlets by cuisine type without using limit and top function
-
 WITH CTE_1 AS (SELECT *,
 ROW_NUMBER() OVER (PARTITION BY cuisine ORDER BY total_orders DESC) AS top_outlets
 FROM (SELECT cuisine, restaurant_id, COUNT(order_id) AS total_orders	 
@@ -9,3 +8,28 @@ GROUP BY cuisine, restaurant_id) a)
 SELECT cuisine, restaurant_id
 FROM CTE_1
 WHERE top_outlets <=3
+
+-- Q2.) Find the daily new customer count from the launch date (everyday how many new customers are we acquiring)
+WITH CTE_1 AS (SELECT DISTINCT  Customer_code, CAST(MIN(placed_at) AS date) AS acquire_date
+FROM food_delivery_orders
+GROUP BY Customer_code),
+
+	CTE_2 AS (SELECT Order_id, fdo.Customer_code, CAST(Placed_at AS date) AS order_placed_date, Restaurant_id, Cuisine, Order_status, Promo_code_Name, acquire_date
+	FROM food_delivery_orders fdo
+	INNER JOIN CTE_1 ct
+	ON fdo.Customer_code = ct.Customer_code
+	AND CAST(Placed_at AS date) = ct.acquire_date)
+
+SELECT acquire_date, COUNT(*) AS daily_new_customer_count
+FROM CTE_2
+WHERE order_placed_date = acquire_date
+GROUP BY acquire_date
+
+-- Q4.) List all the customers with no orders in the last 7 days but were acquired one month ago with their first order on promo
+SELECT DISTINCT customer_code, MIN(Placed_at) AS acquired_date
+FROM food_delivery_orders
+WHERE Customer_code NOT IN (SELECT DISTINCT customer_code
+FROM food_delivery_orders
+WHERE DATEDIFF(DAY, placed_at, GETDATE()) <=7) AND Promo_code_Name IS NOT NULL
+GROUP BY Customer_code
+HAVING DATEDIFF(MONTH, MIN(placed_at), GETDATE()) <=1
