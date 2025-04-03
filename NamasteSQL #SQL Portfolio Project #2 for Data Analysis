@@ -50,3 +50,10 @@ FROM food_delivery_orders
 WHERE DATEDIFF(DAY, placed_at, GETDATE()) <=7) AND Promo_code_Name IS NOT NULL
 GROUP BY Customer_code
 HAVING DATEDIFF(MONTH, MIN(placed_at), GETDATE()) <=1
+
+-- Q5.) Growth team is planning to create a trigger that will target customers after their every third order with a personalized message and they have asked you to create a query for this.
+SELECT Customer_code, placed_at, order_number
+FROM (SELECT *,
+ROW_NUMBER() OVER (PARTITION BY customer_code ORDER BY placed_at) AS order_number
+FROM food_delivery_orders) a
+WHERE order_number % 3 = 0 AND CAST(Placed_at AS date) = CAST(GETDATE() AS date)
