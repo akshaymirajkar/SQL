@@ -65,12 +65,31 @@ COUNT(Customer_code) OVER (PARTITION BY customer_code) AS total_orders
 FROM food_delivery_orders) a
 WHERE total_orders > 1),
 
-CTE_2 AS (SELECT *,
-COUNT(Promo_code_Name) OVER (PARTITION BY customer_code) AS promo_code_order
-FROM food_delivery_orders) 
+	CTE_2 AS (SELECT *,
+	COUNT(Promo_code_Name) OVER (PARTITION BY customer_code) AS promo_code_order
+	FROM food_delivery_orders) 
 
 SELECT DISTINCT ct.customer_code, total_orders, promo_code_order
 FROM CTE_1 ct
 INNER JOIN CTE_2 ctt
 ON ct.customer_code = ctt.customer_code
 WHERE ct.total_orders = ctt.promo_code_order
+
+-- Q7.) What percent of customers were originally acquired in Jan 2025. (Placed their first order without promo code)
+WITH CTE_1 AS (SELECT *
+FROM (SELECT *,
+MIN(placed_at) OVER (PARTITION BY customer_code) AS date_acquired
+FROM food_delivery_orders) a
+WHERE Placed_at = date_acquired AND MONTH(Placed_at) = '01'),
+
+	CTE_2 AS (SELECT *
+	FROM (SELECT *,
+	MIN(placed_at) OVER (PARTITION BY customer_code) AS date_acquired
+	FROM food_delivery_orders) a
+	WHERE Placed_at = date_acquired AND MONTH(Placed_at) = '01' AND Promo_code_Name IS NULL) 
+
+SELECT COUNT(ctt.customer_code)*100.0/ COUNT(ct.customer_code) AS organically_acquired
+FROM CTE_1 ct
+LEFT JOIN CTE_2 ctt
+ON ct.customer_code = ctt.customer_code
+AND ct.placed_at = ctt.placed_at
