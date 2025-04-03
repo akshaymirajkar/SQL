@@ -25,6 +25,23 @@ FROM CTE_2
 WHERE order_placed_date = acquire_date
 GROUP BY acquire_date
 
+-- Q3.) Find the count of all the users who were acquired in Jan 2025 and only placed one order in Jan and did not place any other order.
+WITH CTE_1 AS (SELECT Customer_code, MIN(placed_at) AS acquire_date
+FROM food_delivery_orders
+GROUP BY Customer_code
+)
+
+SELECT customer_code
+FROM (SELECT fdo.Customer_code, COUNT(*) AS total_no_of_customers
+FROM food_delivery_orders fdo
+INNER JOIN CTE_1 ct
+ON fdo.Customer_code = ct.customer_code
+WHERE MONTH(ct.acquire_date) = '01' AND fdo.Customer_code NOT IN (SELECT Customer_code
+FROM food_delivery_orders
+WHERE MONTH(Placed_at) <> '01')
+GROUP BY fdo.Customer_code) a
+WHERE total_no_of_customers = 1
+
 -- Q4.) List all the customers with no orders in the last 7 days but were acquired one month ago with their first order on promo
 SELECT DISTINCT customer_code, MIN(Placed_at) AS acquired_date
 FROM food_delivery_orders
